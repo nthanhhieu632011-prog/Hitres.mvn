@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tetris RGB Ultimate</title>
+    <style>
+        :root { 
+            --bg-color: #050505; 
+            --primary: #00ffcc; 
+            --neon-blue: #00f3ff;
+            --neon-yellow: #ffee00;
+        }
+        body { 
+            background: radial-gradient(circle, #1a1a1a 0%, #000000 100%); 
+            color: white; text-align: center; 
+            font-family: 'Segoe UI', Arial, sans-serif; margin: 0; overflow: hidden; touch-action: none; 
+        }
+        
+        /* --- HIỆU ỨNG CẦU VỒNG (RGB) --- */
+        @keyframes rainbow-border {
+            0% { border-color: #ff0000; box-shadow: 0 0 20px #ff0000, inset 0 0 20px #ff0000; }
+            20% { border-color: #ffff00; box-shadow: 0 0 20px #ffff00, inset 0 0 20px #ffff00; }
+            40% { border-color: #00ff00; box-shadow: 0 0 20px #00ff00, inset 0 0 20px #00ff00; }
+            60% { border-color: #00ffff; box-shadow: 0 0 20px #00ffff, inset 0 0 20px #00ffff; }
+            80% { border-color: #0000ff; box-shadow: 0 0 20px #0000ff, inset 0 0 20px #0000ff; }
+            100% { border-color: #ff00ff; box-shadow: 0 0 20px #ff00ff, inset 0 0 20px #ff00ff; }
+        }
+
+        @keyframes rainbow-text {
+            0% { color: #ff0000; text-shadow: 0 0 10px #ff0000; border-color: #ff0000; box-shadow: 0 0 15px #ff0000; }
+            20% { color: #ffff00; text-shadow: 0 0 10px #ffff00; border-color: #ffff00; box-shadow: 0 0 15px #ffff00; }
+            40% { color: #00ff00; text-shadow: 0 0 10px #00ff00; border-color: #00ff00; box-shadow: 0 0 15px #00ff00; }
+            60% { color: #00ffff; text-shadow: 0 0 10px #00ffff; border-color: #00ffff; box-shadow: 0 0 15px #00ffff; }
+            80% { color: #0000ff; text-shadow: 0 0 10px #0000ff; border-color: #0000ff; box-shadow: 0 0 15px #0000ff; }
+            100% { color: #ff00ff; text-shadow: 0 0 10px #ff00ff; border-color: #ff00ff; box-shadow: 0 0 15px #ff00ff; }
+        }
+
+        @keyframes gradient-text {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Tiêu đề 7 màu */
+        .rainbow-title {
+            font-size: 3.5rem; 
+            margin-bottom: 10px; 
+            font-style: italic; 
+            letter-spacing: 5px;
+            background: linear-gradient(270deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #8b00ff);
+            background-size: 400% 400%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: gradient-text 5s ease infinite;
+            filter: drop-shadow(0 0 10px rgba(255,255,255,0.5));
+        }
+
+        /* Giao diện UI Layer với viền RGB */
+        #ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 10;
+            backdrop-filter: blur(5px);
+            border: 4px solid #fff;
+            /* Áp dụng animation RGB */
+            animation: rainbow-border 4s linear infinite alternate; 
+        }
+        .hidden { display: none !important; }
+
+        /* Thông số game */
+        .info-panel { display: flex; justify-content: center; gap: 15px; margin: 15px 0; }
+        .stat-box { 
+            font-size: 18px; color: var(--neon-yellow); font-weight: bold; 
+            background: #111; padding: 8px 15px; border-radius: 8px; 
+            border: 2px solid var(--neon-yellow); 
+            box-shadow: 0 0 10px var(--neon-yellow);
+            text-shadow: 0 0 5px var(--neon-yellow);
+            min-width: 100px;
+        }
+        
+        /* Canvas */
+        canvas { 
+            border: 2px solid var(--primary); 
+            background: rgba(0,0,0,0.8); 
+            display: block; margin: 0 auto; 
+            max-height: 55vh; 
+            box-shadow: 0 0 30px var(--primary); 
+        }
+        
+        /* Controls */
+        .controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 10px; max-width: 450px; margin: 0 auto; }
+        button { 
+            padding: 15px 0; font-size: 16px; font-weight: 900; border: 2px solid rgba(255,255,255,0.2); 
+            border-radius: 8px; color: white; cursor: pointer; user-select: none; transition: 0.2s; 
+            text-shadow: 0 1px 2px black;
+            position: relative; overflow: hidden;
+        }
+        button:active { transform: scale(0.92); }
+        
+        .btn-move { background: rgba(52, 73, 94, 0.8); box-shadow: 0 0 10px #34495e; }
+        .btn-rot { background: rgba(46, 204, 113, 0.8); box-shadow: 0 0 15px #2ecc71; color: #fff; }
+        .btn-drop { background: rgba(231, 76, 60, 0.8); box-shadow: 0 0 15px #e74c3c; }
+        .btn-hold { background: rgba(52, 152, 219, 0.8); box-shadow: 0 0 15px #3498db; }
+        .btn-pause { background: rgba(155, 89, 182, 0.8); box-shadow: 0 0 10px #9b59b6; }
+        
+        /* Nút START RGB */
+        .btn-ui { padding: 15px 40px; font-size: 22px; margin: 15px; min-width: 240px; border-radius: 50px; border: 3px solid #fff; background: transparent; }
+        
+        .btn-rgb {
+            animation: rainbow-text 3s linear infinite; /* Chữ và viền đổi màu liên tục */
+        }
+        .btn-rgb:hover { 
+            background: rgba(255,255,255,0.1);
+            transform: scale(1.05);
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="ui-layer">
+        <h1 id="ui-title" class="rainbow-title">TETRIS</h1>
+        <p id="ui-msg" style="color: #ddd; font-size: 1.2rem; text-shadow: 0 0 5px white;">Sẵn sàng thử thách cực đại chưa? </p>
+        <button id="btn-main-action" class="btn-ui btn-rgb" onclick="handleMainAction()">BẮT ĐẦU</button>
+        <button class="btn-ui" style="background: #333; border-color: #555; color: #aaa;" onclick="exitGame()">THOÁT</button>
+    </div>
+
+    <div class="info-panel">
+        <div id="score" class="stat-box">0</div>
+        <div id="level-display" class="stat-box">LVL 1</div>
+        <div id="time" class="stat-box">00:00</div>
+    </div>
+    
+    <canvas id="tetris"></canvas>
+
+    <div class="controls">
+        <button class="btn-move" onpointerdown="startMove(-1)" onpointerup="stopMove()" onpointerleave="stopMove()">⬅️ TRÁI</button>
+        <button class="btn-rot" onpointerdown="rotate()">🔄 XOAY</button>
+        <button class="btn-move" onpointerdown="startMove(1)" onpointerup="stopMove()" onpointerleave="stopMove()">PHẢI ➡️</button>
+        
+        <button class="btn-hold" onpointerdown="swapPiece()">🔁 ĐỔI</button>
+        <button class="btn-drop" onpointerdown="dropFull()">⏬ RƠI NGAY</button>
+        <button class="btn-pause" onpointerdown="togglePause()">⏸️ NGHỈ</button>
+        
+        <button id="btn-reset" style="grid-column: span 3; background: #f39c12; color: #000;" onpointerdown="confirmReset()">⚠️ RESET GAME ⚠️</button>
+    </div>
+
+    <audio id="bgMusic" src="https://www.dropbox.com/scl/fi/8fll8e15ltwrbtc52dlpg/Nightcore-Top-50-songs-of-TheFatRat-2025-TheFatRat-Mega-Mix.mp3?rlkey=xht41ra8tlzjhh2s74yngtf5l&st=654zt4qu&dl=1" loop></audio> 
+    <audio id="sndClear" src="https://actions.google.com/sounds/v1/cartoon/pop.ogg"></audio>
+
+    <script>
+        const canvas = document.getElementById('tetris');
+        const ctx = canvas.getContext('2d');
+        const uiLayer = document.getElementById('ui-layer');
+        const uiTitle = document.getElementById('ui-title');
+        const uiMsg = document.getElementById('ui-msg');
+        const btnMain = document.getElementById('btn-main-action');
+        const scoreElement = document.getElementById('score');
+        const levelElement = document.getElementById('level-display');
+        const timeElement = document.getElementById('time');
+        
+        const bgMusic = document.getElementById('bgMusic');
+        const sndClear = document.getElementById('sndClear');
+
+        const COLS = 10, ROWS = 20, TILE_SIZE = 30;
+        canvas.width = COLS * TILE_SIZE;
+        canvas.height = ROWS * TILE_SIZE;
+
+        const COLORS = [
+            'transparent', 
+            '#00ffff', '#0000ff', '#ffaa00', '#ffff00', '#00ff00', '#aa00ff', '#ff0000', 
+            '#ff00aa', '#ffcc99', 
+            '#ffffff', '#88ff88', '#ff6666'
+        ];
+        
+        const SHAPES = [
+            [0,0,0,0, 1,1,1,1, 0,0,0,0, 0,0,0,0], 
+            [2,0,0,0, 2,2,2,0, 0,0,0,0, 0,0,0,0], 
+            [0,0,3,0, 3,3,3,0, 0,0,0,0, 0,0,0,0], 
+            [0,0,0,0, 0,4,4,0, 0,4,4,0, 0,0,0,0], 
+            [0,0,0,0, 0,5,5,0, 5,5,0,0, 0,0,0,0], 
+            [0,0,0,0, 0,6,0,0, 6,6,6,0, 0,0,0,0], 
+            [0,0,0,0, 7,7,0,0, 0,7,7,0, 0,0,0,0], 
+            [0,0,0,0, 0,8,8,8, 0,0,0,0, 0,0,0,0], 
+            [0,0,0,0, 0,9,9,0, 0,9,0,0, 0,0,0,0], 
+            [0,10,0,0, 10,10,10,0, 0,10,0,0, 0,0,0,0], 
+            [11,0,11,0, 11,11,11,0, 0,0,0,0, 0,0,0,0], 
+            [12,0,0,0, 12,12,0,0, 0,12,12,0, 0,0,0,0]  
+        ];
+
+        let board, score, level, isGameOver, holdPiece, canHold, cur, dropTimer, animationId;
+        let isPaused = true, isGameRunning = false, gameSeconds = 0, clockInterval = null;
+        let moveInterval = null;
+
+        function initData() {
+            board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+            score = 0; level = 1; isGameOver = false; holdPiece = -1; canHold = true;
+            scoreElement.innerText = "0";
+            levelElement.innerText = "LVL 1";
+            gameSeconds = 0; updateTimeDisplay(); startClock();
+            newPiece();
+        }
+
+        function exitGame() { if (confirm("Bạn muốn thoát về Google?")) window.location.href = "https://www.google.com"; }
+
+        function startClock() {
+            if (clockInterval) clearInterval(clockInterval);
+            clockInterval = setInterval(() => { if (!isPaused && !isGameOver) { gameSeconds++; updateTimeDisplay(); } }, 1000);
+        }
+
+        function updateTimeDisplay() {
+            let m = Math.floor(gameSeconds/60).toString().padStart(2,'0'), s = (gameSeconds%60).toString().padStart(2,'0');
+            timeElement.innerText = `${m}:${s}`;
+        }
+
+        function newPiece() {
+            let id = Math.floor(Math.random() * SHAPES.length);
+            cur = { id: id, x: Math.floor(COLS / 2) - 2, y: -2, data: [] };
+            if (id === 0 || id === 3 || id === 9) cur.y = -1;
+            for(let i=0; i<4; i++) cur.data[i] = SHAPES[cur.id].slice(i*4, i*4+4);
+            if (!check(0, 0)) gameOver();
+        }
+
+        function check(dx, dy, temp = null, testX = null, testY = null) {
+            let d = temp || cur.data, cx = (testX !== null) ? testX : cur.x, cy = (testY !== null) ? testY : cur.y;
+            for(let i=0; i<4; i++) for(let j=0; j<4; j++) {
+                if(!d[i][j]) continue;
+                let nx = cx + j + dx, ny = cy + i + dy;
+                if(nx < 0 || nx >= COLS || ny >= ROWS) return false;
+                if(ny >= 0 && board[ny][nx]) return false;
+            }
+            return true;
+        }
+
+        function getGhostY() {
+            let gy = cur.y;
+            while (check(0, 1, cur.data, cur.x, gy)) gy++;
+            return gy;
+        }
+
+        function rotate() {
+            if(isPaused || isGameOver) return;
+            let temp = Array.from({length: 4}, (_,i) => Array.from({length: 4}, (_,j) => cur.data[3-j][i]));
+            if(check(0, 0, temp)) cur.data = temp;
+            else if(check(1, 0, temp)) { cur.x += 1; cur.data = temp; }
+            else if(check(-1, 0, temp)) { cur.x -= 1; cur.data = temp; }
+            else if(check(2, 0, temp)) { cur.x += 2; cur.data = temp; }
+            else if(check(-2, 0, temp)) { cur.x -= 2; cur.data = temp; }
+        }
+
+        function startMove(dx) {
+            if(moveInterval) clearInterval(moveInterval);
+            move(dx);
+            moveInterval = setInterval(() => move(dx), 100);
+        }
+        function stopMove() { clearInterval(moveInterval); }
+        function move(dx) { if(!isPaused && !isGameOver && check(dx, 0)) cur.x += dx; }
+        
+        function dropFull() { if(!isPaused && !isGameOver) { cur.y = getGhostY(); lockPiece(); } }
+
+        function lockPiece() {
+            let visible = false;
+            for(let i=0; i<4; i++) for(let j=0; j<4; j++)
+                if(cur.data[i][j] && cur.y+i >= 0) { board[cur.y+i][cur.x+j] = cur.id + 1; visible = true; }
+            
+            if(visible) { clearLines(); newPiece(); canHold = true; } else gameOver();
+        }
+
+        function clearLines() {
+            let cleared = 0;
+            for(let r = ROWS - 1; r >= 0; r--) {
+                if(board[r].every(c => c !== 0)) { board.splice(r, 1); board.unshift(Array(COLS).fill(0)); cleared++; r++; }
+            }
+            if(cleared > 0) {
+                let pts = [0, 100, 300, 500, 800][cleared] || (cleared * 200);
+                score += pts * level;
+                scoreElement.innerText = score;
+                sndClear.currentTime = 0; sndClear.play().catch(()=>{});
+                
+                let newLvl = Math.floor(score / 2500) + 1;
+                if(newLvl > level) { 
+                    level = newLvl; 
+                    levelElement.innerText = "LVL " + level; 
+                    showLevelUpMsg();
+                    addGarbageLine();
+                }
+            }
+        }
+
+        function addGarbageLine() {
+            let hole = Math.floor(Math.random() * COLS);
+            let line = Array(COLS).fill(8);
+            line[hole] = 0;
+            board.shift();
+            board.push(line);
+        }
+
+        function showLevelUpMsg() {
+            let originalText = uiMsg.innerText;
+            uiMsg.innerText = "⚠️ CẤP ĐỘ MỚI - TĂNG TỐC! ⚠️";
+            uiMsg.style.color = "red";
+            setTimeout(() => { uiMsg.innerText = originalText; uiMsg.style.color = "#ddd"; }, 2000);
+        }
+
+        function update() {
+            if(isPaused || isGameOver) return;
+            let now = Date.now();
+            let speed = Math.max(50, 800 * Math.pow(0.85, level - 1)); 
+            
+            if(now - dropTimer > speed) { if(check(0, 1)) cur.y++; else lockPiece(); dropTimer = now; }
+            
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+            ctx.fillRect(0,0, canvas.width, canvas.height);
+
+            board.forEach((r, y) => r.forEach((v, x) => { if(v) drawBox(x, y, v); }));
+
+            if(cur && !isGameOver && level < 5) {
+                let gy = getGhostY();
+                if(gy > cur.y) cur.data.forEach((r, y) => r.forEach((v, x) => { if(v && cur.y+y >= -1) drawBox(cur.x+x, gy+y, cur.id+1, true); }));
+            }
+
+            if (cur) cur.data.forEach((r, y) => r.forEach((v, x) => { if(v && cur.y+y >= -1) drawBox(cur.x+x, cur.y+y, cur.id+1); }));
+            
+            drawGrid();
+            animationId = requestAnimationFrame(update);
+        }
+
+        function drawBox(x, y, id, isGhost = false) {
+            let color = COLORS[id] || '#fff';
+            if(isGhost) {
+                ctx.globalAlpha = 0.15; ctx.strokeStyle = color; ctx.lineWidth = 2;
+                ctx.strokeRect(x*TILE_SIZE+2, y*TILE_SIZE+2, TILE_SIZE-4, TILE_SIZE-4); ctx.globalAlpha = 1;
+            } else {
+                ctx.shadowBlur = 15; ctx.shadowColor = color;
+                ctx.fillStyle = color; ctx.fillRect(x*TILE_SIZE+2, y*TILE_SIZE+2, TILE_SIZE-4, TILE_SIZE-4);
+                ctx.fillStyle = "rgba(255,255,255,0.4)"; ctx.fillRect(x*TILE_SIZE+2, y*TILE_SIZE+2, TILE_SIZE-4, 8);
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        function drawGrid() {
+            ctx.strokeStyle = 'rgba(255,255,255,0.03)'; ctx.lineWidth = 1;
+            for(let i=1; i<COLS; i++) { ctx.beginPath(); ctx.moveTo(i*TILE_SIZE, 0); ctx.lineTo(i*TILE_SIZE, canvas.height); ctx.stroke(); }
+            for(let i=1; i<ROWS; i++) { ctx.beginPath(); ctx.moveTo(0, i*TILE_SIZE); ctx.lineTo(canvas.width, i*TILE_SIZE); ctx.stroke(); }
+        }
+
+        function swapPiece() {
+            if(!canHold || isPaused || isGameOver) return;
+            let oldId = cur.id;
+            if(holdPiece === -1) { holdPiece = oldId; newPiece(); }
+            else { 
+                cur.id = holdPiece; holdPiece = oldId; cur.x = Math.floor(COLS/2)-2; cur.y = -2; 
+                for(let i=0; i<4; i++) cur.data[i] = SHAPES[cur.id].slice(i*4, i*4+4); 
+            }
+            canHold = false;
+        }
+
+        function handleMainAction() { if (isGameRunning && isPaused) togglePause(); else startGame(); }
+        function startGame() { uiLayer.classList.add('hidden'); isPaused = false; isGameRunning = true; bgMusic.play().catch(()=>{}); initData(); dropTimer = Date.now(); update(); }
+        function togglePause() { 
+            if (!isGameRunning || isGameOver) return;
+            isPaused = !isPaused;
+            if (isPaused) { bgMusic.pause(); showUI("TẠM DỪNG", "Nghỉ tay chút thôi", "TIẾP TỤC"); }
+            else { uiLayer.classList.add('hidden'); bgMusic.play(); update(); }
+        }
+        function showUI(t, m, b) { uiTitle.innerText = t; uiMsg.innerText = m; btnMain.innerText = b; uiLayer.classList.remove('hidden'); }
+        function gameOver() { isGameOver = true; isGameRunning = false; bgMusic.pause(); showUI("THUA CUỘC", `Cấp ${level} - Điểm: ${score}`, "CHƠI LẠI"); }
+        function confirmReset() { if(confirm("Chơi lại từ đầu?")) { cancelAnimationFrame(animationId); startGame(); } }
+
+        document.addEventListener('keydown', e => {
+            if(isPaused || isGameOver) return;
+            if(e.key === "ArrowLeft") move(-1); if(e.key === "ArrowRight") move(1);
+            if(e.key === "ArrowUp") rotate(); if(e.key === "ArrowDown") { if(check(0,1)) cur.y++; }
+            if(e.key === " ") dropFull(); if(e.key === "c" || e.key === "Shift") swapPiece();
+        });
+    </script>
+</body>
+</html>
